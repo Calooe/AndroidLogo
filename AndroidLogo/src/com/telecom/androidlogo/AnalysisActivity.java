@@ -11,28 +11,18 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
-import org.opencv.features2d.KeyPoint;
-import org.opencv.highgui.Highgui;
-import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Application;
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-public class AnalysisActivity extends FragmentActivity {		
+public class AnalysisActivity extends Activity {		
 	
 	ImageView imageViewResult;
 	
