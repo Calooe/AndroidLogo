@@ -1,7 +1,5 @@
 package com.telecom.androidlogo;
 
-import org.opencv.android.OpenCVLoader;
-
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.content.Intent;
@@ -11,8 +9,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.support.v4.view.ViewPager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
