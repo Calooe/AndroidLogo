@@ -14,11 +14,14 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
@@ -93,7 +96,7 @@ public class AnalysisActivity extends Activity {
 		Bitmap image = BitmapFactory.decodeFile(PathToFile);		
 		imageViewResult.setImageBitmap(image);
 		
-		String PathToLogo = "/storage/emulated/0/DCIM/Camera/edflogo.jpg";
+		String PathToLogo = "/storage/emulated/0/DCIM/Camera/kfclogo.jpg";
 		String XMLPath = "/storage/emulated/0/DCIM/xml/kfc.xml";
 		
 		int MIN_MATCH_THRESHOLD = 300;
@@ -113,7 +116,11 @@ public class AnalysisActivity extends Activity {
 		    MatOfKeyPoint refKeypoints = new MatOfKeyPoint();
 		    MatOfKeyPoint srcKeyPoints = new MatOfKeyPoint();
 
-		    Mat refDescriptors = new Mat();
+		    
+		    
+		    //Mat refDescriptors = new Mat();	    
+		    Mat refDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/result.txt");	
+		    
 		    Mat srcDescriptors = new Mat();
 
 		    MatOfPoint2f reference = new MatOfPoint2f();
@@ -124,11 +131,10 @@ public class AnalysisActivity extends Activity {
 		    orbFeatureDetector.detect(srcMat, srcKeyPoints);
 
 		    DescriptorExtractor descriptorExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
-		    descriptorExtractor.compute(refMat, refKeypoints, refDescriptors);
-		    descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);
+		    //descriptorExtractor.compute(refMat, refKeypoints, refDescriptors);
+		    descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);	    
 		    
 		    
-		   
 		    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 		    matcher.match(refDescriptors, srcDescriptors, matches);
 		    	    
@@ -152,18 +158,10 @@ public class AnalysisActivity extends Activity {
 		    goodMatches.fromList(listOfGoodMatches);
 
 		    
+		    		    
+		    //List<KeyPoint> refObjectListKeypoints = XMLToKeypoint(XMLPath);
 		    
-		   // KeyPoint k = new KeyPoint();
-		    //k.angle = 
-		    
-		    //List<KeyPoint> TestKP;
-		    
-		    //TestKP.add(KeyPoint)
-		    
-		    List<KeyPoint> refObjectListKeypoints = XMLToKeypoint(XMLPath);
-		    
-		    //List<KeyPoint> refObjectListKeypoints = refKeypoints.toList();
-		    
+		    List<KeyPoint> refObjectListKeypoints = refKeypoints.toList();		    
 		    List<KeyPoint> srcObjectListKeypoints = srcKeyPoints.toList();
 		    
 		    //WriteXMLDescriptor(XMLPath,refObjectListKeypoints);  
@@ -333,7 +331,6 @@ public class AnalysisActivity extends Activity {
 			BufferedReader br=new BufferedReader(ipsr);
 			String ligne;
 			while ((ligne=br.readLine())!=null){
-				System.out.println(ligne);
 				chaine+=ligne+"\n";
 			}
 			br.close(); 
@@ -343,6 +340,71 @@ public class AnalysisActivity extends Activity {
 		}
 	    
 	    return chaine;
+	}
+	
+	
+	public void WriteDescriptor(String PathFile, Mat Descriptor)
+	{
+		File f = new File (PathFile);
+	    FileWriter fw;
+		try {
+			fw = new FileWriter (f);
+	    	String temp = Descriptor.dump();		    
+	    	fw.write(temp);
+		    fw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public Mat ReadDescriptor(String PathFile)
+	{	    
+	    String Acouper = ReadXML(PathFile).trim().replaceAll("\n", "").replaceAll(" ", "");
+	    
+	    int ligne = CountChar(";", Acouper) + 1;
+	        
+	    if (Acouper.contains("[")) Acouper = Acouper.substring(1);//supprimer le '['
+
+	    String[] matrice = Acouper.split(";");	    
+	    int colonne = CountChar(",", matrice[0]) + 1;
+	    
+	    Mat des = new Mat(ligne,colonne,CvType.CV_8UC1);	  
+	    String[][] matrices = new String[ligne][colonne];//nombre de ";" +1
+	    
+	    for(int i = 0; i<matrice.length;i++)
+	    {
+    		int j = 0;
+    		
+	    	for (String s : matrice[i].split(","))
+	    	{
+	    		if(s.contains("]")) s = s.substring(0,s.indexOf("]"));
+	    			
+	    		matrices[i][j] = s;
+	    		j++;
+	    	}
+	    }
+	    
+	    
+	    for(int row=0;row<ligne;row++)
+	    {
+	    	for(int col=0;col<colonne;col++)
+	    	{
+	    		des.put(row, col, Double.parseDouble(matrices[row][col]));
+	    	}
+	    }
+	    
+	    return des;
+	}
+	
+	
+	private int CountChar(String RegEx, String chaine)
+	{		
+		Matcher match = Pattern.compile(RegEx).matcher(chaine);
+		int occurence = 0;
+		
+		while(match.find()) occurence++;
+		
+		return occurence;		
 	}
 	
 		
