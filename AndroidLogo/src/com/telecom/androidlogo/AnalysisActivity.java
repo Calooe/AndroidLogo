@@ -1,52 +1,33 @@
 package com.telecom.androidlogo;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.json.JSONObject;
-import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.features2d.DMatch;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
-import android.R.xml;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.provider.DocumentsContract.Document;
-import android.sax.Element;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -96,88 +77,109 @@ public class AnalysisActivity extends Activity {
 		Bitmap image = BitmapFactory.decodeFile(PathToFile);		
 		imageViewResult.setImageBitmap(image);
 		
-		String PathToLogo = "/storage/emulated/0/DCIM/Camera/kfclogo.jpg";
+		String PathToLogo = "/storage/emulated/0/DCIM/Camera/edflogo.jpg";
 		String XMLPath = "/storage/emulated/0/DCIM/xml/kfc.xml";
 		
 		int MIN_MATCH_THRESHOLD = 300;
 		int MAX_MATCH_THRESHOLD = 500;
 				
-		    Mat refMat = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
+		    //Mat refMat = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
 		    Mat srcMat = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
 
 		    MatOfDMatch matches = new MatOfDMatch();
-		    MatOfDMatch goodMatches = new MatOfDMatch();
 
 		    LinkedList<DMatch> listOfGoodMatches = new LinkedList<DMatch>();
-
-		    LinkedList<Point> refObjectList = new LinkedList<Point>();
-		    LinkedList<Point> srcObjectList = new LinkedList<Point>();
-
-		    MatOfKeyPoint refKeypoints = new MatOfKeyPoint();
 		    MatOfKeyPoint srcKeyPoints = new MatOfKeyPoint();
 
 		    
 		    
-		    //Mat refDescriptors = new Mat();	    
-		    Mat refDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/result.txt");	
+		    //Mat kfcDescriptors = new Mat();	    
+		    Mat kfcDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/kfc.txt");
 		    
 		    Mat srcDescriptors = new Mat();
 
-		    MatOfPoint2f reference = new MatOfPoint2f();
-		    MatOfPoint2f source = new MatOfPoint2f();
 
 		    FeatureDetector orbFeatureDetector = FeatureDetector.create(FeatureDetector.ORB);
-		    orbFeatureDetector.detect(refMat, refKeypoints);
 		    orbFeatureDetector.detect(srcMat, srcKeyPoints);
 
 		    DescriptorExtractor descriptorExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
-		    //descriptorExtractor.compute(refMat, refKeypoints, refDescriptors);
 		    descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);	    
 		    
+		    //ecriture d'un descripteur
+		    //WriteDescriptor("/storage/emulated/0/DCIM/xml/edf.txt", refDescriptors);
 		    
 		    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-		    matcher.match(refDescriptors, srcDescriptors, matches);
-		    	    
+		    matcher.match(kfcDescriptors, srcDescriptors, matches);
+		    	        
 		
 		    double max_dist = 0;
 		    double min_dist = 100;
 		    List<DMatch> matchesList = matches.toList();
 
-		    for (int i = 0; i < refDescriptors.rows(); i++) {
+		    for (int i = 0; i < kfcDescriptors.rows(); i++) {
 		        Double distance = (double) matchesList.get(i).distance;
 		        if (distance < min_dist) min_dist = distance;
 		        if (distance > max_dist) max_dist = distance;
 		    }
 
-		    for (int i = 0; i < refDescriptors.rows(); i++) {
+		    for (int i = 0; i < kfcDescriptors.rows(); i++) {
 		        if (matchesList.get(i).distance < 3 * min_dist) {
 		            listOfGoodMatches.add(matchesList.get(i));
 		        }
 		    }
-
-		    goodMatches.fromList(listOfGoodMatches);
-
+		        
 		    
-		    		    
 		    //List<KeyPoint> refObjectListKeypoints = XMLToKeypoint(XMLPath);
 		    
-		    List<KeyPoint> refObjectListKeypoints = refKeypoints.toList();		    
-		    List<KeyPoint> srcObjectListKeypoints = srcKeyPoints.toList();
+		    //WriteXMLDescriptor(XMLPath,refObjectListKeypoints); 
 		    
-		    //WriteXMLDescriptor(XMLPath,refObjectListKeypoints);  
+		    AfficheToast("KFC = " + listOfGoodMatches.size());
+		    
+		    
+		    
+		    
+		    //*********************************************************************************
+		    
+		    //2eme essai
+		    
+		    Mat edfDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/edf.txt");		    
+		    MatOfDMatch matches2 = new MatOfDMatch();
 
-		    for (int i = 0; i < listOfGoodMatches.size(); i++) {
-		        refObjectList.addLast(refObjectListKeypoints.get(listOfGoodMatches.get(i).queryIdx).pt);
-		        srcObjectList.addLast(srcObjectListKeypoints.get(listOfGoodMatches.get(i).trainIdx).pt);
+		    LinkedList<DMatch> listOfGoodMatches2 = new LinkedList<DMatch>();
+
+		    DescriptorMatcher matcher2 = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);		    
+		    matcher2.match(edfDescriptors, srcDescriptors, matches2);
+		    	        
+		
+		    max_dist = 0;
+		    min_dist = 100;
+		    List<DMatch> matchesList2 = matches2.toList();
+
+		    for (int i = 0; i < edfDescriptors.rows(); i++) {
+		        Double distance = (double) matchesList2.get(i).distance;
+		        if (distance < min_dist) min_dist = distance;
+		        if (distance > max_dist) max_dist = distance;
 		    }
-		   		    
 
-		    reference.fromList(refObjectList);
-		    source.fromList(srcObjectList);
-
-		    String result;
+		    listOfGoodMatches2.clear();
 		    
-		    Log.d(TAG, "listOfGoodMatches.size = " + listOfGoodMatches.size());
+		    for (int i = 0; i < edfDescriptors.rows(); i++) {
+		        if (matchesList2.get(i).distance < 3 * min_dist) {
+		            listOfGoodMatches2.add(matchesList2.get(i));
+		        }
+		    }
+		        		    
+		    AfficheToast("EDF = " + listOfGoodMatches2.size());  
+		    
+		    
+		    //***************** Fin 2eme essai  **************************************
+		    
+		    
+		    
+		    
+		    /*
+		    
+		    String result;
 		    
 		    if(listOfGoodMatches.size() > MIN_MATCH_THRESHOLD && listOfGoodMatches.size() < MAX_MATCH_THRESHOLD) {
 		        result = "They MATCH!";
@@ -195,15 +197,15 @@ public class AnalysisActivity extends Activity {
 		            }).create();
 		    alert.show();
 
-		    Mat outputImage = new Mat();
+		    Mat outputImage = new Mat();*/
 
-		    Features2d.drawMatches(refMat, refKeypoints, srcMat, srcKeyPoints, goodMatches, outputImage);
+		    //Features2d.drawMatches(refMat, refKeypoints, srcMat, srcKeyPoints, goodMatches, outputImage);
 
-		    Bitmap bitmap = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(), Bitmap.Config.ARGB_8888);
+		    //Bitmap bitmap = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(), Bitmap.Config.ARGB_8888);
 
-		    Utils.matToBitmap(outputImage, bitmap);
+		    //Utils.matToBitmap(outputImage, bitmap);
 
-		    imageViewResult.setImageBitmap(bitmap);
+		    //imageViewResult.setImageBitmap(bitmap);
 		    
 		    
 			//-- prendre les coins de l'objet de image "train" (l'objet à "detecter" )  
