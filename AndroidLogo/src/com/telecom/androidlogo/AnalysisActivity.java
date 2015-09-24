@@ -58,25 +58,25 @@ vector<double>   : MatOfDouble
 vector<Vec4i>    : MatOfInt4
 vector<Vec4f>    : MatOfFloat4
 vector<Vec6f>    : MatOfFloat6
-*/
+ */
 
 
 public class AnalysisActivity extends Activity {		
-	
+
 	ImageView imageViewResult;
-	
+
 	private static final String TAG = "Analysis_Activity";	//pour les log debug
-	
-		
+
+
 	static {
 		OpenCVLoader.initDebug();
-		}
-	
+	}
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_analysis);	
-		
+
 		imageViewResult = (ImageView) findViewById(R.id.imageViewResult);		
 
 		//recupération de l'image en 4 lignes
@@ -84,127 +84,124 @@ public class AnalysisActivity extends Activity {
 		String PathToFile =  extras.getString("PathToImage");				
 		Bitmap image = BitmapFactory.decodeFile(PathToFile);		
 		imageViewResult.setImageBitmap(image);
+
+		//Mat refMat = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
+
+		MatOfDMatch matches = new MatOfDMatch();
+
+		LinkedList<DMatch> listOfGoodMatches = new LinkedList<DMatch>();
+
+		//***********************  Source *******************
+
+		Mat srcMat = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
 		
-		
-		String PathToLogo = "/storage/emulated/0/DCIM/Camera/edflogo.jpg";
-		String XMLPath = "/storage/emulated/0/DCIM/xml/kfc.xml";
-		
-		int MIN_MATCH_THRESHOLD = 300;
-		int MAX_MATCH_THRESHOLD = 500;
+		Mat srcDescriptors = new Mat();
+		MatOfKeyPoint srcKeyPoints = new MatOfKeyPoint();
+		FeatureDetector orbFeatureDetector = FeatureDetector.create(FeatureDetector.ORB);
+		orbFeatureDetector.detect(srcMat, srcKeyPoints);
+
+		DescriptorExtractor descriptorExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+		descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);
+
+		//*********************** Fin Source *******************
+
+		//Mat kfcDescriptors = new Mat();	    
+		//Mat kfcDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/kfc.txt");
+
+		String pathkfc = "http://195.154.75.125/descripteurs/kfc.txt";
+		Mat kfcDescriptors = ReadDescriptor(pathkfc);
+
+		if(kfcDescriptors != null)
+		{			
+			//1er essai
+						
+			//ecriture d'un descripteur
+			//WriteDescriptor("/storage/emulated/0/DCIM/xml/edf.txt", refDescriptors);
+
+			DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+			matcher.match(kfcDescriptors, srcDescriptors, matches);
+
+
+			double max_dist = 0;
+			double min_dist = 100;
+			
+			List<DMatch> matchesList = matches.toList();
+
+			for (int i = 0; i < kfcDescriptors.rows(); i++) {
+				Double distance = (double) matchesList.get(i).distance;
+				if (distance < min_dist) min_dist = distance;
+				if (distance > max_dist) max_dist = distance;
+			}
+
+			AfficheToast("KFC_rows = " + kfcDescriptors.rows());
+			
+			for (int i = 0; i < kfcDescriptors.rows(); i++) {
+				if (matchesList.get(i).distance < (3 * min_dist)) {
+					listOfGoodMatches.add(matchesList.get(i));
+				}
+			}
+
+
+			//List<KeyPoint> refObjectListKeypoints = XMLToKeypoint(XMLPath);
+
+			//WriteXMLDescriptor(XMLPath,refObjectListKeypoints);
+
+			AfficheToast("KFC = " + listOfGoodMatches.size());
+
+		}
+		else AfficheToast("Impossible de recupérer le descripteur depuis " + pathkfc);  
+
+		//*********************************************************************************
+
+		//2eme essai
+
+		String pathEdf = "http://195.154.75.125/descripteurs/edf.txt";
+
+		Mat edfDescriptors = ReadDescriptor(pathEdf);
+
+		if(edfDescriptors != null)
+		{
+			MatOfDMatch matches2 = new MatOfDMatch();
+
+			LinkedList<DMatch> listOfGoodMatches2 = new LinkedList<DMatch>();
+
+			DescriptorMatcher matcher2 = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);		    
+			matcher2.match(edfDescriptors, srcDescriptors, matches2);
+
+
+			double max_dist = 0;
+			double min_dist = 100;
+			
+			List<DMatch> matchesList2 = matches2.toList();
+
+			for (int i = 0; i < edfDescriptors.rows(); i++) {
+				Double distance = (double) matchesList2.get(i).distance;
+				if (distance < min_dist) min_dist = distance;
+				if (distance > max_dist) max_dist = distance;
+			}
+
+			AfficheToast("EDF_rows = " + edfDescriptors.rows());
+			
+			for (int i = 0; i < edfDescriptors.rows(); i++) {
+				Log.d(TAG, "distance = " + matchesList2.get(i).distance + " -- 3 * min_dist = " +3 * min_dist );
 				
-		    //Mat refMat = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
-		    Mat srcMat = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
+				if (matchesList2.get(i).distance < 3 * min_dist) {
+					listOfGoodMatches2.add(matchesList2.get(i));
+				}
+			}
 
-		    MatOfDMatch matches = new MatOfDMatch();
+			AfficheToast("EDF = " + listOfGoodMatches2.size());
 
-		    LinkedList<DMatch> listOfGoodMatches = new LinkedList<DMatch>();
-		    
-		    //***********************  Source *******************
+		}
+		else AfficheToast("Impossible de recupérer le descripteur depuis " + pathkfc);
 
-		    Mat srcDescriptors = new Mat();
-		    MatOfKeyPoint srcKeyPoints = new MatOfKeyPoint();
-		    FeatureDetector orbFeatureDetector = FeatureDetector.create(FeatureDetector.ORB);
-		    orbFeatureDetector.detect(srcMat, srcKeyPoints);
 
-		    DescriptorExtractor descriptorExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
-		    descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);
-	    
-		    
-		  //*********************** Fin Source *******************
-		    
-		    //Mat kfcDescriptors = new Mat();	    
-		    //Mat kfcDescriptors = ReadDescriptor("/storage/emulated/0/DCIM/xml/kfc.txt");
-		    
-		    String pathkfc = "http://calooe.no-ip.org/xml/kfc.txt";
-		    
-		    Mat kfcDescriptors = ReadDescriptor(pathkfc);
-		    
-		    if(kfcDescriptors != null)
-			    {
-			    
-			    //ecriture d'un descripteur
-			    //WriteDescriptor("/storage/emulated/0/DCIM/xml/edf.txt", refDescriptors);
-			    
-			    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-			    matcher.match(kfcDescriptors, srcDescriptors, matches);
-			    	        
-			
-			    double max_dist = 0;
-			    double min_dist = 100;
-			    List<DMatch> matchesList = matches.toList();
-	
-			    for (int i = 0; i < kfcDescriptors.rows(); i++) {
-			        Double distance = (double) matchesList.get(i).distance;
-			        if (distance < min_dist) min_dist = distance;
-			        if (distance > max_dist) max_dist = distance;
-			    }
-	
-			    for (int i = 0; i < kfcDescriptors.rows(); i++) {
-			        if (matchesList.get(i).distance < 3 * min_dist) {
-			            listOfGoodMatches.add(matchesList.get(i));
-			        }
-			    }
-			        
-			    
-			    //List<KeyPoint> refObjectListKeypoints = XMLToKeypoint(XMLPath);
-			    
-			    //WriteXMLDescriptor(XMLPath,refObjectListKeypoints); 
-			    
-			    AfficheToast("KFC = " + listOfGoodMatches.size());
-		    
-		    
-		    }
-		    else AfficheToast("Impossible de recupérer le descripteur depuis " + pathkfc);  
-		    
-		    //*********************************************************************************
-		    
-		    //2eme essai
-		    
-		    String pathEdf = "http://calooe.no-ip.org/xml/edf.txt";
-		    
-		    Mat edfDescriptors = ReadDescriptor(pathEdf);
-		    
-		    if(edfDescriptors != null)
-		    {
-		    
-			    MatOfDMatch matches2 = new MatOfDMatch();
-	
-			    LinkedList<DMatch> listOfGoodMatches2 = new LinkedList<DMatch>();
-	
-			    DescriptorMatcher matcher2 = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);		    
-			    matcher2.match(edfDescriptors, srcDescriptors, matches2);
-			    	        
-			
-			    double max_dist = 0;
-			    double min_dist = 100;
-			    List<DMatch> matchesList2 = matches2.toList();
-	
-			    for (int i = 0; i < edfDescriptors.rows(); i++) {
-			        Double distance = (double) matchesList2.get(i).distance;
-			        if (distance < min_dist) min_dist = distance;
-			        if (distance > max_dist) max_dist = distance;
-			    }
-			    
-			    for (int i = 0; i < edfDescriptors.rows(); i++) {
-			        if (matchesList2.get(i).distance < 3 * min_dist) {
-			            listOfGoodMatches2.add(matchesList2.get(i));
-			        }
-			    }
-			        		    
-			    AfficheToast("EDF = " + listOfGoodMatches2.size());  
-		    
-		    }
-		    else AfficheToast("Impossible de recupérer le descripteur depuis " + pathkfc);  
-		    
+		//***************** Fin 2eme essai  **************************************
 
-		    //***************** Fin 2eme essai  **************************************
-		    
-		    
-		    
-		    /*
-		    
+		/*
+
 		    String result;
-		    
+
 		    if(listOfGoodMatches.size() > MIN_MATCH_THRESHOLD && listOfGoodMatches.size() < MAX_MATCH_THRESHOLD) {
 		        result = "They MATCH!";
 		    } else {
@@ -223,42 +220,42 @@ public class AnalysisActivity extends Activity {
 
 		    Mat outputImage = new Mat();*/
 
-		    //Features2d.drawMatches(refMat, refKeypoints, srcMat, srcKeyPoints, goodMatches, outputImage);
+		//Features2d.drawMatches(refMat, refKeypoints, srcMat, srcKeyPoints, goodMatches, outputImage);
 
-		    //Bitmap bitmap = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(), Bitmap.Config.ARGB_8888);
+		//Bitmap bitmap = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(), Bitmap.Config.ARGB_8888);
 
-		    //Utils.matToBitmap(outputImage, bitmap);
+		//Utils.matToBitmap(outputImage, bitmap);
 
-		    //imageViewResult.setImageBitmap(bitmap);
-		    
-		    
-			//-- prendre les coins de l'objet de image "train" (l'objet à "detecter" )  
+		//imageViewResult.setImageBitmap(bitmap);
 
-		    
-		  /*  for(MatOfPoint point : contours) {
+
+		//-- prendre les coins de l'objet de image "train" (l'objet à "detecter" )  
+
+
+		/*  for(MatOfPoint point : contours) {
 		        MatOfPoint2f newPoint = new MatOfPoint2f(point.toArray());
 		        newContours.add(newPoint);
 		    }
-		    
-		    
-		    
+
+
+
 		    List<MatOfPoint2f> obj_corners = new ArrayList<MatOfPoint2f>();
 
 		    MatOfPoint2f a = new MatOfPoint2f();
 		    a.create(0,0,Point);
-		    
+
 		    MatOfPoint2f b = new MatOfPoint2f();
 		    b.create(rows, cols, type);
-		    
+
 		    MatOfPoint2f c = new MatOfPoint2f();
 		    c.create(rows, cols, type);
-		    
+
 		    MatOfPoint2f d = new MatOfPoint2f();
 		    d.create(rows, cols, type);
-		    
-		    
-		    
-		    
+
+
+
+
 			obj_corners.add(MatOfPoint2f.create(0, 0)); 
 			obj_corners.add(MatOfPoint2f(refMat.cols(), 0));
 			obj_corners.add(MatOfPoint2f(refMat.cols(), refMat.rows()));
@@ -272,89 +269,89 @@ public class AnalysisActivity extends Activity {
 			line(img_matches, scene_corners[1] + offset, scene_corners[2] + offset, Scalar(0, 255, 0), 4);
 			line(img_matches, scene_corners[2] + offset, scene_corners[3] + offset, Scalar(0, 255, 0), 4);
 			line(img_matches, scene_corners[3] + offset, scene_corners[0] + offset, Scalar(0, 255, 0), 4);
-		    
-		    */
-		    
-		
+
+		 */
+
+
 	}
-	
+
 	public void WriteXMLDescriptor(String PathToXML,List<KeyPoint> des)
 	{
 		File f = new File (PathToXML);		
-		
+
 		try
 		{
-		    FileWriter fw = new FileWriter (f);
+			FileWriter fw = new FileWriter (f);
 
-	    	String temp = "";
-	    	
-		    for (int i = 0; i < des.size(); i++) {
-		    	
-		    	temp += "<Keypoint>\n";
-		    	temp += "\t<angle>"+des.get(i).angle+"</angle>\n";
-		    	temp += "\t<response>"+des.get(i).response+"</response>\n";
-		    	temp += "\t<size>"+des.get(i).size+"</size>\n";
-		    	temp += "</Keypoint>\n";
-		    } 
-		    
-	    	fw.write(temp);
-		    fw.close();
+			String temp = "";
+
+			for (int i = 0; i < des.size(); i++) {
+
+				temp += "<Keypoint>\n";
+				temp += "\t<angle>"+des.get(i).angle+"</angle>\n";
+				temp += "\t<response>"+des.get(i).response+"</response>\n";
+				temp += "\t<size>"+des.get(i).size+"</size>\n";
+				temp += "</Keypoint>\n";
+			} 
+
+			fw.write(temp);
+			fw.close();
 		}
 		catch (IOException exception)
 		{
 			Log.e("Descriptor", "Erreur lors de la lecture : " + exception.getMessage());
 		}		
 	}
-	
+
 	public List<KeyPoint> XMLToKeypoint(String PathToXML)
 	{
 		String AllKey = ReadXML(PathToXML);
-		
+
 		List<KeyPoint> retour = new LinkedList<KeyPoint>();
 
 		try{
-		
+
 			while(AllKey.contains("<Keypoint>"))
 			{
 				retour.add(DecriptKeypoint(AllKey));				
 				AllKey = AllKey.substring(AllKey.indexOf("</Keypoint>")+11);
 			}		
-		
+
 		}		
 		catch (Exception e){
 			Log.e(TAG,e.toString());
 		}
-		
+
 		return retour;
-		
+
 	}
-	
+
 	private KeyPoint DecriptKeypoint(String xmlToParse)
 	{	
 		KeyPoint k = new KeyPoint();
 		k.angle = Float.valueOf(LitBaliseXML(xmlToParse,"angle"));
 		k.response = Float.valueOf(LitBaliseXML(xmlToParse,"response"));
 		k.size = Float.valueOf(LitBaliseXML(xmlToParse,"size"));
-		
+
 		return k;		
 	}
-	
+
 	private String LitBaliseXML(String xmlToParse,String balise)
 	{
 		return xmlToParse.substring(xmlToParse.indexOf("<"+balise+">")+balise.length()+2,xmlToParse.indexOf("</"+balise+">"));		
 	}
-	
-	
+
+
 	private String ReadXML(String PathToXML)
 	{
 		File f = new File(PathToXML);
 		if(!f.exists() || f.isDirectory()) { return ""; }
-		
+
 		String chaine;
-		
-	    chaine ="";    
-	    
-	    try{
+
+		chaine ="";    
+
+		try{
 			InputStream ips=new FileInputStream(PathToXML);			
 			InputStreamReader ipsr=new InputStreamReader(ips);
 			BufferedReader br=new BufferedReader(ipsr);
@@ -367,29 +364,29 @@ public class AnalysisActivity extends Activity {
 		catch (Exception e){
 			System.out.println(e.toString());
 		}
-	    
-	    return chaine;
+
+		return chaine;
 	}
-	
-	
+
+
 	public void WriteDescriptor(String PathFile, Mat Descriptor)
 	{
 		File f = new File (PathFile);
-	    FileWriter fw;
+		FileWriter fw;
 		try {
 			fw = new FileWriter (f);
-	    	String temp = Descriptor.dump();		    
-	    	fw.write(temp);
-		    fw.close();
+			String temp = Descriptor.dump();		    
+			fw.write(temp);
+			fw.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public Mat ReadDescriptor(String PathFile_or_URL)
 	{	    
 		String Acouper = "";
-		
+
 		if(PathFile_or_URL.contains("http"))
 		{			
 			if(isOnline())	Acouper = ReadFileFromWeb(PathFile_or_URL).trim().replaceAll("\n", "").replaceAll(" ", "");
@@ -398,63 +395,63 @@ public class AnalysisActivity extends Activity {
 		else
 		{
 			Acouper = ReadXML(PathFile_or_URL).trim().replaceAll("\n", "").replaceAll(" ", "");
-			
+
 			if(Acouper.length() == 0) return null;
 		}
-	    		
-	    int ligne = CountChar(";", Acouper) + 1;
-	        
-	    if (Acouper.contains("[")) Acouper = Acouper.substring(1);//supprimer le '['
 
-	    String[] matrice = Acouper.split(";");	    
-	    int colonne = CountChar(",", matrice[0]) + 1;
-	    
-	    Mat des = new Mat(ligne,colonne,CvType.CV_8UC1);	  
-	    String[][] matrices = new String[ligne][colonne];//nombre de ";" +1
-	    
-	    for(int i = 0; i<matrice.length;i++)
-	    {
-    		int j = 0;
-    		
-	    	for (String s : matrice[i].split(","))
-	    	{
-	    		if(s.contains("]")) s = s.substring(0,s.indexOf("]"));
-	    			
-	    		matrices[i][j] = s;
-	    		j++;
-	    	}
-	    }
-	    
-	    
-	    for(int row=0;row<ligne;row++)
-	    {
-	    	for(int col=0;col<colonne;col++)
-	    	{
-	    		des.put(row, col, Double.parseDouble(matrices[row][col]));
-	    	}
-	    }
-	    
-	    return des;
+		int ligne = CountChar(";", Acouper) + 1;
+
+		if (Acouper.contains("[")) Acouper = Acouper.substring(1);//supprimer le '['
+
+		String[] matrice = Acouper.split(";");	    
+		int colonne = CountChar(",", matrice[0]) + 1;
+
+		Mat des = new Mat(ligne,colonne,CvType.CV_8UC1);	  
+		String[][] matrices = new String[ligne][colonne];//nombre de ";" +1
+
+		for(int i = 0; i<matrice.length;i++)
+		{
+			int j = 0;
+
+			for (String s : matrice[i].split(","))
+			{
+				if(s.contains("]")) s = s.substring(0,s.indexOf("]"));
+
+				matrices[i][j] = s;
+				j++;
+			}
+		}
+
+
+		for(int row=0;row<ligne;row++)
+		{
+			for(int col=0;col<colonne;col++)
+			{
+				des.put(row, col, Double.parseDouble(matrices[row][col]));
+			}
+		}
+
+		return des;
 	}
-	
+
 	public boolean isOnline() {
-	    ConnectivityManager connMgr = (ConnectivityManager) 
-	            getSystemService(Context.CONNECTIVITY_SERVICE);
-	    NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-	    return (networkInfo != null && networkInfo.isConnected());
+		ConnectivityManager connMgr = (ConnectivityManager) 
+				getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+		return (networkInfo != null && networkInfo.isConnected());
 	}
-	
+
 	private int CountChar(String RegEx, String chaine)
 	{		
 		Matcher match = Pattern.compile(RegEx).matcher(chaine);
 		int occurence = 0;
-		
+
 		while(match.find()) occurence++;
-		
+
 		return occurence;		
 	}
-	
-		
+
+
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -474,32 +471,32 @@ public class AnalysisActivity extends Activity {
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
-	
+
+
 	public void AfficheToast(String aff)
 	{
 		Toast.makeText(getApplicationContext(),aff, 
-                Toast.LENGTH_SHORT).show();
-		
+				Toast.LENGTH_SHORT).show();
+
 	}
-	
+
 	public String ReadFileFromWeb(String Url)
 	{
-		 String out = "";
-		         
-		 		try {
-		 			out = new Scanner(new URL(Url).openStream(), "UTF-8").useDelimiter("\\A").next();
-		 		} catch (MalformedURLException e) {
-		 			// TODO Auto-generated catch block
-		 			e.printStackTrace();
-		 		} catch (IOException e) {
-		 			// TODO Auto-generated catch block
-		 			e.printStackTrace();
-		 		}
-		 		
-		 return out;
+		String out = "";
+
+		try {
+			out = new Scanner(new URL(Url).openStream(), "UTF-8").useDelimiter("\\A").next();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return out;
 	}
-	
+
 }
 
 
