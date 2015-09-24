@@ -1,22 +1,41 @@
 package com.telecom.androidlogo;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.util.Scanner;
+
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
+
+
 public class MainActivity extends Activity implements View.OnClickListener{
 
+	
+
+	private static final String TAG = "Analysis_Activity";	//pour les log debug
+	
 	Button buttonCapture;
 	Button buttonGallery;
 	Button buttonAnalysis;
@@ -34,6 +53,14 @@ public class MainActivity extends Activity implements View.OnClickListener{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);	
+		
+		
+		if (android.os.Build.VERSION.SDK_INT > 9) {
+		    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		    StrictMode.setThreadPolicy(policy);
+		}
+		
+		
 
 		
 		buttonCapture = (Button) findViewById(R.id.buttonCapture);
@@ -64,6 +91,11 @@ public class MainActivity extends Activity implements View.OnClickListener{
         	image = dataFragment.getData();
         	imageview.setImageBitmap(image);
         }        					
+        
+        
+       
+                
+        
 	}
 	
 	public void onClick(View v) {
