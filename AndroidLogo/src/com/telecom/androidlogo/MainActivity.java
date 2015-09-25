@@ -1,5 +1,10 @@
 package com.telecom.androidlogo;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.content.Intent;
@@ -8,7 +13,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,18 +41,23 @@ public class MainActivity extends Activity implements View.OnClickListener{
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);	
-
 		
+		
+		if (android.os.Build.VERSION.SDK_INT > 9) {
+		    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+		    StrictMode.setThreadPolicy(policy);
+		}
+		
+				
 		buttonCapture = (Button) findViewById(R.id.buttonCapture);
 		buttonGallery = (Button) findViewById(R.id.buttonGallery);
-		buttonAnalysis = (Button) findViewById(R.id.buttonAnalysis);
-		
+		buttonAnalysis = (Button) findViewById(R.id.buttonAnalysis);		
 		
 		imageview = (ImageView) findViewById(R.id.imageView);
 		
 		buttonCapture.setOnClickListener(this);
 		buttonGallery.setOnClickListener(this);
-		buttonAnalysis.setOnClickListener(this);	
+		buttonAnalysis.setOnClickListener(this);		
 		
 		
 		FragmentManager fm = getFragmentManager();
@@ -65,6 +77,8 @@ public class MainActivity extends Activity implements View.OnClickListener{
         	imageview.setImageBitmap(image);
         }        					
 	}
+	
+	
 	
 	public void onClick(View v) {
 		
@@ -134,7 +148,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
 			
 			String[] medData = { MediaStore.Images.Media.DATA };			
 			Cursor picCursor = getContentResolver().query(pickedUri, medData, null, null, null);
-			
+						
 			
 			if(picCursor!=null)
 			{
