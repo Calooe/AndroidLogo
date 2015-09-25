@@ -1,64 +1,39 @@
 package com.telecom.androidlogo;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
-
-import org.json.JSONObject;
-import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.features2d.DMatch;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
-import android.R.xml;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.NetworkOnMainThreadException;
-import android.provider.DocumentsContract.Document;
-import android.sax.Element;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -109,10 +84,6 @@ public class AnalysisActivity extends Activity {
 		imageViewResult.setImageBitmap(image);		
 		
 		
-		String PathToLogo = "/storage/emulated/0/DCIM/Camera/edflogo.jpg";
-		//String XMLPath = "/storage/emulated/0/DCIM/xml/kfc.xml";
-		
-		
 		FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
 		 DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
 		 DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
@@ -125,7 +96,7 @@ public class AnalysisActivity extends Activity {
 		 detector.detect(img1, keypoints1);
 		 descriptor.compute(img1, keypoints1, descriptors1);
 
-		 String Serveur = "http://195.154.75.125/descripteurs/";
+		 String Serveur = "http://195.154.75.125/descripteurs";
 
 		 List<String> Logos = Getlogos(Serveur);
 		 
@@ -140,7 +111,7 @@ public class AnalysisActivity extends Activity {
 		 for(String s : Logos )
 		 {
 	
-			 Mat descriptors2 = ReadDescriptor(Serveur+s);
+			 Mat descriptors2 = ReadDescriptor(Serveur+"/"+s);
 			 
 			 //matcher should include 2 different image's descriptors
 			 MatOfDMatch  matches = new MatOfDMatch();             
@@ -369,8 +340,7 @@ public class AnalysisActivity extends Activity {
 		MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
 		 
 		FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
-		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-	    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
 		detector.detect(img1, keypoints1);
 		descriptor.compute(img1, keypoints1, descriptors1);		
 		
