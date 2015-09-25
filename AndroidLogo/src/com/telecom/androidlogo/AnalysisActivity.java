@@ -10,12 +10,15 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
@@ -105,9 +108,6 @@ public class AnalysisActivity extends Activity {
 		 
 		 int j = 0;
 		 
-		 int max = 0;
-		 int indexWinner = 0;
-		 
 		 for(String s : Logos )
 		 {
 	
@@ -133,19 +133,39 @@ public class AnalysisActivity extends Activity {
 			 
 			 matches_final_mat.fromList(matches_final);	
 			 
-			 if (matches_final.size() > max) 
-			 {
-				 max = matches_final.size();
-				 indexWinner = j;
-			 }
-			 
 			 score [j] = matches_final.size();
 			 nom[j] = s.substring(0, s.indexOf(".txt"));
 			 
 			 j++;
-		 }		 
+		 }		
 		 
-		 AfficheToast( "The winner is " + nom[indexWinner]);
+		 int[] tempscore = new int[score.length];
+		 
+		 for(int i = 0;i<score.length;i++)
+		 {
+			 tempscore[i]=score[i];
+		 }
+		 		 
+		 Arrays.sort(tempscore);
+		 
+		 String[] tab_final = new String[tempscore.length];
+		 
+		 int x =0;
+		 
+		 for(int i = tempscore.length-1;i>=0;i--)
+		 {
+			 for(int y = 0;y<score.length;y++)
+			 {
+				 if(tempscore[i] == score[y]) tab_final[x] = nom[y] + " --> ";
+			 }
+			 
+			 tab_final[x] += String.valueOf(tempscore[i]);
+			 
+			 x++;
+		 }
+		 
+		 
+		 AfficheToast( "The winners are :\n" + tab_final[0] + "\n" + tab_final[1] + "\n" + tab_final[2]);
 		 
 	}
 	
