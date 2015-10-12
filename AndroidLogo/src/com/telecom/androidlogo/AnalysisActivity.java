@@ -59,7 +59,6 @@ vector<Vec4f>    : MatOfFloat4
 vector<Vec6f>    : MatOfFloat6
 */
 
-
 public class AnalysisActivity extends Activity {		
 	
 	ImageView imageViewResult;
@@ -86,8 +85,8 @@ public class AnalysisActivity extends Activity {
 		
 		
 		FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
-		 DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-		 DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
+		DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
 		 //first image
 		 Mat img1 = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
