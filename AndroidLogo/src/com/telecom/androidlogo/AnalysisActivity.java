@@ -1,39 +1,36 @@
 package com.telecom.androidlogo;
 
-import java.io.BufferedReader;
-import java.io.File;
+import java.io.Console;
 import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Vector;
+
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
+import org.opencv.android.Utils;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
 import org.opencv.features2d.DMatch;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 
 import android.app.Activity;
-import android.content.Context;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -59,6 +56,7 @@ vector<Vec4f>    : MatOfFloat4
 vector<Vec6f>    : MatOfFloat6
 */
 
+
 public class AnalysisActivity extends Activity {		
 	
 	ImageView imageViewResult;
@@ -81,318 +79,227 @@ public class AnalysisActivity extends Activity {
 		Bundle extras = getIntent().getExtras();
 		String PathToFile =  extras.getString("PathToImage");				
 		Bitmap image = BitmapFactory.decodeFile(PathToFile);		
-		imageViewResult.setImageBitmap(image);		
+		imageViewResult.setImageBitmap(image);
 		
+		String PathToLogo = "/storage/emulated/0/DCIM/Camera/edflogo.jpg";
 		
-		FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
-		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-		DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+		int MIN_MATCH_THRESHOLD = 200;
+		int MAX_MATCH_THRESHOLD = 500;
+				
+		    Mat refMat = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
+		    Mat srcMat = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
 
-		 //first image
-		 Mat img1 = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
-		 Mat descriptors1 = new Mat();
-		 MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+		    MatOfDMatch matches = new MatOfDMatch();
+		    MatOfDMatch goodMatches = new MatOfDMatch();
 
-		 detector.detect(img1, keypoints1);
-		 descriptor.compute(img1, keypoints1, descriptors1);
+		    LinkedList<DMatch> listOfGoodMatches = new LinkedList<DMatch>();
 
-		 String Serveur = "http://195.154.75.125/descripteurs";
+		    LinkedList<Point> refObjectList = new LinkedList<Point>();
+		    LinkedList<Point> srcObjectList = new LinkedList<Point>();
 
-		 List<String> Logos = Getlogos(Serveur);
-		 
-		 int[] score = new int[Logos.size()];
-		 String[] nom = new String[Logos.size()];
-		 
-		 int j = 0;
-		 
-		 for(String s : Logos )
-		 {
-	
-			 Mat descriptors2 = ReadDescriptor(Serveur+"/"+s);
-			 
-			 //matcher should include 2 different image's descriptors
-			 MatOfDMatch  matches = new MatOfDMatch();             
-			 matcher.match(descriptors1,descriptors2,matches);
-			 
-			 
-			 int DIST_LIMIT = 60;
-			 
-			 List<DMatch> matchesList = matches.toList();
-			 List<DMatch> matches_final= new ArrayList<DMatch>();
-			 for(int i=0; i<matchesList.size(); i++)
-			 {
-			    if(matchesList .get(i).distance <= DIST_LIMIT){
-			        matches_final.add(matches.toList().get(i));
-			    }
-			 }
-	
-			 MatOfDMatch matches_final_mat = new MatOfDMatch();
-			 
-			 matches_final_mat.fromList(matches_final);	
-			 
-			 score [j] = matches_final.size();
-			 nom[j] = s.substring(0, s.indexOf(".txt"));
-			 
-			 j++;
-		 }		
-		 
-		 int[] tempscore = new int[score.length];
-		 
-		 for(int i = 0;i<score.length;i++)
-		 {
-			 tempscore[i]=score[i];
-		 }
-		 		 
-		 Arrays.sort(tempscore);
-		 
-		 String[] tab_final = new String[tempscore.length];
-		 
-		 int x =0;
-		 
-		 for(int i = tempscore.length-1;i>=0;i--)
-		 {
-			 for(int y = 0;y<score.length;y++)
-			 {
-				 if(tempscore[i] == score[y]) tab_final[x] = nom[y] + " --> ";
-			 }
-			 
-			 tab_final[x] += String.valueOf(tempscore[i]);
-			 
-			 x++;
-		 }
-		 
-		 
-		 AfficheToast( "The winners are :\n" + tab_final[0] + "\n" + tab_final[1] + "\n" + tab_final[2]);
-		 
-	}
-	
-	public List<String> Getlogos(String urlToRead) {
-		
-		List<String> logos = new LinkedList<String>();
-		
-		String temp = getHTML(urlToRead);
-		
-		while(temp.contains(".txt"))
-		{
-			int deb = temp.indexOf(".txt\">") + 6;
-			int fin = temp.indexOf("</a>",deb);
-			logos.add(temp.substring(deb,fin));
-			temp = temp.substring(fin);
-		}
-		
-		return logos;		
-	}
-	
-	public String getHTML(String urlToRead) {		
+		    MatOfKeyPoint refKeypoints = new MatOfKeyPoint();
+		    MatOfKeyPoint srcKeyPoints = new MatOfKeyPoint();
 
-		String out = "";
+		    Mat refDescriptors = new Mat();
+		    Mat srcDescriptors = new Mat();
 
-		try {
-			out = new Scanner(new URL(urlToRead).openStream(), "UTF-8").useDelimiter("\\A").next();
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		    MatOfPoint2f reference = new MatOfPoint2f();
+		    MatOfPoint2f source = new MatOfPoint2f();
 
-		return out;
-        
-	}	
-	
-	public Mat ReadDescriptor(String PathFile_or_URL)
-	{	    
-		String Acouper = "";
+		    FeatureDetector orbFeatureDetector = FeatureDetector.create(FeatureDetector.ORB);
+		    orbFeatureDetector.detect(refMat, refKeypoints);
+		    orbFeatureDetector.detect(srcMat, srcKeyPoints);
 
-		if(PathFile_or_URL.contains("http"))
-		{			
-			if(isOnline())	Acouper = getHTML(PathFile_or_URL).trim().replaceAll("\n", "").replaceAll(" ", "");
-			else return null;
-		}
-		else
-		{
-			Acouper = ReadXML(PathFile_or_URL).trim().replaceAll("\n", "").replaceAll(" ", "");
+		    DescriptorExtractor descriptorExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+		    descriptorExtractor.compute(refMat, refKeypoints, refDescriptors);
+		    descriptorExtractor.compute(srcMat, srcKeyPoints, srcDescriptors);
 
-			if(Acouper.length() == 0) return null;
-		}
+		    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+		    matcher.match(refDescriptors, srcDescriptors, matches);
 
-		int ligne = CountChar(";", Acouper) + 1;
+		    double max_dist = 0;
+		    double min_dist = 100;
+		    List<DMatch> matchesList = matches.toList();
 
-		if (Acouper.contains("[")) Acouper = Acouper.substring(1);//supprimer le '['
+		    for (int i = 0; i < refDescriptors.rows(); i++) {
+		        Double distance = (double) matchesList.get(i).distance;
+		        if (distance < min_dist) min_dist = distance;
+		        if (distance > max_dist) max_dist = distance;
+		    }
 
-		String[] matrice = Acouper.split(";");	    
-		int colonne = CountChar(",", matrice[0]) + 1;
+		    for (int i = 0; i < refDescriptors.rows(); i++) {
+		        if (matchesList.get(i).distance < 3 * min_dist) {
+		            listOfGoodMatches.add(matchesList.get(i));
+		        }
+		    }
 
-		Mat des = new Mat(ligne,colonne,CvType.CV_8UC1);	  
-		String[][] matrices = new String[ligne][colonne];//nombre de ";" +1
+		    goodMatches.fromList(listOfGoodMatches);
 
-		for(int i = 0; i<matrice.length;i++)
-		{
-			int j = 0;
+		    List<KeyPoint> refObjectListKeypoints = refKeypoints.toList();
+		    List<KeyPoint> srcObjectListKeypoints = srcKeyPoints.toList();
 
-			for (String s : matrice[i].split(","))
-			{
-				if(s.contains("]")) s = s.substring(0,s.indexOf("]"));
+		    for (int i = 0; i < listOfGoodMatches.size(); i++) {
+		        refObjectList.addLast(refObjectListKeypoints.get(listOfGoodMatches.get(i).queryIdx).pt);
+		        srcObjectList.addLast(srcObjectListKeypoints.get(listOfGoodMatches.get(i).trainIdx).pt);
+		    }
 
-				matrices[i][j] = s;
-				j++;
-			}
-		}
+		    reference.fromList(refObjectList);
+		    source.fromList(srcObjectList);
 
-
-		for(int row=0;row<ligne;row++)
-		{
-			for(int col=0;col<colonne;col++)
-			{
-				des.put(row, col, Double.parseDouble(matrices[row][col]));
-			}
-		}
-
-		return des;
-	}
-
-	public boolean isOnline() {
-		ConnectivityManager connMgr = (ConnectivityManager) 
-				getSystemService(Context.CONNECTIVITY_SERVICE);
-		NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-		return (networkInfo != null && networkInfo.isConnected());
-	}
-	
-	public void WriteXMLDescriptor(String PathToXML,List<KeyPoint> des)
-	{
-		File f = new File (PathToXML);		
-		
-		try
-		{
-		    FileWriter fw = new FileWriter (f);
-
-	    	String temp = "";
-	    	
-		    for (int i = 0; i < des.size(); i++) {
-		    	
-		    	temp += "<Keypoint>\n";
-		    	temp += "\t<angle>"+des.get(i).angle+"</angle>\n";
-		    	temp += "\t<response>"+des.get(i).response+"</response>\n";
-		    	temp += "\t<size>"+des.get(i).size+"</size>\n";
-		    	temp += "</Keypoint>\n";
-		    } 
+		    String result;
 		    
-	    	fw.write(temp);
-		    fw.close();
-		}
-		catch (IOException exception)
-		{
-			Log.e("Descriptor", "Erreur lors de la lecture : " + exception.getMessage());
-		}		
-	}
-	
-	public List<KeyPoint> XMLToKeypoint(String PathToXML)
-	{
-		String AllKey = ReadXML(PathToXML);
-		
-		List<KeyPoint> retour = new LinkedList<KeyPoint>();
+		    Log.d(TAG, "listOfGoodMatches.size = " + listOfGoodMatches.size());
+		    
+		    if(listOfGoodMatches.size() > MIN_MATCH_THRESHOLD && listOfGoodMatches.size() < MAX_MATCH_THRESHOLD) {
+		        result = "They MATCH!";
+		    } else {
+		        result = "They DON'T match!";
+		    }
 
-		try{
+		    AlertDialog alert = new AlertDialog.Builder(this)
+		            .setMessage(result)
+		            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+		                @Override
+		                public void onClick(DialogInterface dialog, int which) {
+		                    // close
+		                }
+		            }).create();
+		    alert.show();
+
+		    Mat outputImage = new Mat();
+
+		    Features2d.drawMatches(refMat, refKeypoints, srcMat, srcKeyPoints, goodMatches, outputImage);
+
+		    Bitmap bitmap = Bitmap.createBitmap(outputImage.cols(), outputImage.rows(), Bitmap.Config.ARGB_8888);
+
+		    Utils.matToBitmap(outputImage, bitmap);
+
+		    imageViewResult.setImageBitmap(bitmap);		
 		
-			while(AllKey.contains("<Keypoint>"))
-			{
-				retour.add(DecriptKeypoint(AllKey));				
-				AllKey = AllKey.substring(AllKey.indexOf("</Keypoint>")+11);
-			}		
 		
-		}		
-		catch (Exception e){
-			Log.e(TAG,e.toString());
-		}
+		/*
+		 FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
+		    DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
+		    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+		    
+		    //first image
+		    Mat img1 = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
+		    Mat descriptors1 = new Mat();
+		    MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+		    detector.detect(img1, keypoints1);
+		    descriptor.compute(img1, keypoints1, descriptors1);
+		    //second image
+		    Mat img2 = Highgui.imread(PathToLogo, Highgui.IMREAD_GRAYSCALE);
+		    Mat descriptors2 = new Mat();
+		    MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
+		    detector.detect(img2, keypoints2);
+		    descriptor.compute(img2, keypoints2, descriptors2);
+		    //matcher should include 2 different image's descriptors
+		    MatOfDMatch  matches = new MatOfDMatch();             
+		    matcher.match(descriptors1,descriptors2,matches);
+		    Log.d(TAG, "size " + matches.size());
+		    //feature and connection colors
+		    Scalar RED = new Scalar(255,0,0);
+		    Scalar GREEN = new Scalar(0,255,0);
+		    
+		    //output image
+		    Mat outputImg = new Mat();
+		    MatOfByte drawnMatches = new MatOfByte();
+		    //this will draw all matches, works fine
+		    Features2d.drawMatches(img1, keypoints1, img2, keypoints2, matches, 
+		            outputImg, GREEN, RED,  drawnMatches, Features2d.NOT_DRAW_SINGLE_POINTS);
+		    
+		    int DIST_LIMIT = 100;
+		    
+		    List<DMatch> matchList = matches.toList();
+		    List<DMatch> matches_final = new ArrayList<DMatch>();
+		    for(int i=0; i<matchList.size(); i++){
+		        if(matchList.get(i).distance <= DIST_LIMIT){
+		            matches_final.add(matches.toList().get(i));
+		        }
+		    }
+		    MatOfDMatch matches_final_mat = new MatOfDMatch();
+		    matches_final_mat.fromList(matches_final);
+		    Bitmap bitmap = Bitmap.createBitmap(outputImg.cols(), outputImg.rows(), Bitmap.Config.ARGB_8888);
+		    Utils.matToBitmap(outputImg, bitmap);
+		    imageViewResult.setImageBitmap(bitmap);
+		    
+		*/
 		
-		return retour;
 		
-	}
-	
-	private KeyPoint DecriptKeypoint(String xmlToParse)
-	{	
-		KeyPoint k = new KeyPoint();
-		k.angle = Float.valueOf(LitBaliseXML(xmlToParse,"angle"));
-		k.response = Float.valueOf(LitBaliseXML(xmlToParse,"response"));
-		k.size = Float.valueOf(LitBaliseXML(xmlToParse,"size"));
 		
-		return k;		
-	}
-	
-	private String LitBaliseXML(String xmlToParse,String balise)
-	{
-		return xmlToParse.substring(xmlToParse.indexOf("<"+balise+">")+balise.length()+2,xmlToParse.indexOf("</"+balise+">"));		
-	}
-	
-	
-	private String ReadXML(String PathToXML)
-	{
-		String chaine;
 		
-	    chaine ="";
-	    
-	    try{
-			InputStream ips=new FileInputStream(PathToXML); 
-			InputStreamReader ipsr=new InputStreamReader(ips);
-			BufferedReader br=new BufferedReader(ipsr);
-			String ligne;
-			while ((ligne=br.readLine())!=null){
-				chaine+=ligne+"\n";
-			}
-			br.close(); 
-		}		
-		catch (Exception e){
-			System.out.println(e.toString());
-		}
-	    
-	    return chaine;
-	}
-	
-	
-	public void WriteDescriptor(String PathToFile)
-	{
-		Mat img1 = Highgui.imread(PathToFile, Highgui.IMREAD_GRAYSCALE);
-		Mat descriptors1 = new Mat();
-		MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
-		 
+		
+		
+		
+		
+		
+		
+		
+		/*
+			
+		//Log.d(TAG, imgpath);
+		
+		//recupération de l'image en 1 seul ligne
+		imageViewResult.setImageBitmap(BitmapFactory.decodeFile((String) getIntent().getStringExtra("PathToImage")));	
+					
+		//image logo
+		Bitmap logo = BitmapFactory.decodeFile(PathToLogo);
+		
+		
+		
+		
 		FeatureDetector detector = FeatureDetector.create(FeatureDetector.ORB);
-		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
-		detector.detect(img1, keypoints1);
-		descriptor.compute(img1, keypoints1, descriptors1);		
-		
-		WriteDescriptor(PathToFile.substring(0, PathToFile.indexOf("."))+".txt",descriptors1);	
-		
-		AfficheToast(PathToFile.substring(0, PathToFile.indexOf("."))+".txt --> OK");
+	    DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
+	    DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+	  
+	    
+	    //first image
+	    Mat img1 = Highgui.imread(PathToFile);
+	    Mat descriptors1 = new Mat();
+	    MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+	    detector.detect(img1, keypoints1);
+	    descriptor.compute(img1, keypoints1, descriptors1);
+	    //second image
+	    Mat img2 = Highgui.imread(PathToLogo);
+	    Mat descriptors2 = new Mat();
+	    MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
+	    detector.detect(img2, keypoints2);
+	    descriptor.compute(img2, keypoints2, descriptors2);
+	    //matcher should include 2 different image's descriptors
+	    MatOfDMatch  matches = new MatOfDMatch();             
+	    matcher.match(descriptors1,descriptors2,matches);
+	    //feature and connection colors
+	    Scalar RED = new Scalar(255,0,0);
+	    Scalar GREEN = new Scalar(0,255,0);
+	    //output image
+	    Mat outputImg = new Mat();
+	    MatOfByte drawnMatches = new MatOfByte();
+	    //this will draw all matches, works fine
+	    Features2d.drawMatches(img1, keypoints1, img2, keypoints2, matches, 
+	            outputImg, GREEN, RED,  drawnMatches, Features2d.NOT_DRAW_SINGLE_POINTS);
+	    int DIST_LIMIT = 100;
+	    List<DMatch> matchList = matches.toList();
+	    List<DMatch> matches_final = new ArrayList<DMatch>();
+	    for(int i=0; i<matchList.size(); i++){
+	        if(matchList.get(i).distance <= DIST_LIMIT){
+	            matches_final.add(matches.toList().get(i));
+	        }
+	    }
+	    MatOfDMatch matches_final_mat = new MatOfDMatch();
+	    matches_final_mat.fromList(matches_final);
+	    //Utils.matToBitmap(outputImg, image);
+		//imageViewResult.setImageBitmap(image);
+	    
+	    if (matches_final_mat.rows() >= 400) {
+            AfficheToast("match found : " + matches_final_mat.rows());
+        } else {
+        	AfficheToast("match not found" + matches_final_mat.rows());
+        }
+	    
+	    
+	    */
 	}
-	
-	
-	
-	private void WriteDescriptor(String PathFile, Mat Descriptor)
-	{		
-		File f = new File (PathFile);
-	    FileWriter fw;
-		try {
-			fw = new FileWriter (f);
-	    	String temp = Descriptor.dump();		    
-	    	fw.write(temp);
-		    fw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	
-	private int CountChar(String RegEx, String chaine)
-	{		
-		Matcher match = Pattern.compile(RegEx).matcher(chaine);
-		int occurence = 0;
-		
-		while(match.find()) occurence++;
-		
-		return occurence;		
-	}
-	
 		
 
 	@Override
@@ -423,5 +330,3 @@ public class AnalysisActivity extends Activity {
 	}
 		
 }
-
-
