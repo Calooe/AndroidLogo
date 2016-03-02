@@ -13,22 +13,19 @@
             android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Capture"
                 android:id="@+id/buttonCapture" />
-
             <Button
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Librairie"
                 android:id="@+id/buttonGallery" />
-
-        </LinearLayout>
+    </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
